@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class MovieService {
-  final String apiKey = 'cdf6ac0e791b6bd9c1c4589cd124dd9f'; // Replace with your API key
+  final String apiKey = '1198fa26ce8e040bebfd86f3d5a7e37f'; // Replace with your API key
   final String baseUrl = 'https://api.themoviedb.org/3';
 
   // Fetch movies for a specific page
@@ -28,6 +28,17 @@ class MovieService {
       return data['cast'];
     } else {
       throw Exception('Failed to load cast information');
+    }
+  }
+  Future<List<dynamic>> searchMovies(String query, int page) async {
+    final url = Uri.parse('$baseUrl/search/movie?api_key=$apiKey&query=$query&page=$page');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['results'];
+    } else {
+      throw Exception('Failed to fetch search results');
     }
   }
 }

@@ -3,13 +3,13 @@ import '../data/movie_service.dart';
 import '../domain/movie.dart';
 
 class MovieListScreen extends StatefulWidget {
-  MovieListScreen({super.key});
+  const MovieListScreen({super.key});
 
   @override
-  _MovieListScreenState createState() => _MovieListScreenState();
+  MovieListScreenState createState() => MovieListScreenState();
 }
 
-class _MovieListScreenState extends State<MovieListScreen> {
+class MovieListScreenState extends State<MovieListScreen> {
   final MovieService movieService = MovieService();
   List<Movie> movies = [];
   List<Movie> filteredMovies = [];
@@ -17,7 +17,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
   bool isLoading = false;
   bool hasMoreMovies = true;
   final ScrollController _scrollController = ScrollController();
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
 
   @override
@@ -56,20 +56,38 @@ class _MovieListScreenState extends State<MovieListScreen> {
     }
   }
 
+  Future<void> _searchMovies() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        filteredMovies = List.from(movies);
+        _isSearching = false;
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      List<dynamic> searchResults = await movieService.searchMovies(query, 1);
+      setState(() {
+        filteredMovies = searchResults.map((movie) => Movie.fromJson(movie)).toList();
+      });
+    } catch (e) {
+      _showErrorSnackbar('Failed to fetch search results: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   void _scrollListener() {
     if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
       _fetchMovies();
     }
-  }
-
-  void _filterMovies() {
-    setState(() {
-      String query = _searchController.text.toLowerCase();
-      filteredMovies = movies.where((movie) {
-        return movie.title.toLowerCase().contains(query) ||
-            movie.overview!.toLowerCase().contains(query);
-      }).toList();
-    });
   }
 
   void _navigateToDetails(Movie movie) {
@@ -112,7 +130,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
         ),
         title: TextField(
           controller: _searchController,
-          onChanged: (value) => _filterMovies(),
+          onChanged: (value) => _searchMovies(),
           decoration: InputDecoration(
             hintText: 'Search movies...',
           ),
@@ -121,9 +139,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
           IconButton(
             icon: Icon(Icons.search),
             onPressed: () {
-              setState(() {
-                _isSearching = true;
-              });
+              _searchMovies();
             },
           ),
         ],
@@ -133,7 +149,10 @@ class _MovieListScreenState extends State<MovieListScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.deepPurple, Colors.indigo],
+              colors: [
+                Color.fromRGBO(160, 120, 220, 1),
+                Color.fromRGBO(140, 100, 200, 0.3),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -218,7 +237,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           subtitle: Text(
-            movie.overview??'',
+            movie.overview ?? '',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -232,7 +251,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
 class MovieDetailsScreen extends StatelessWidget {
   final Movie movie;
 
-  MovieDetailsScreen({required this.movie});
+  const MovieDetailsScreen({Key? key, required this.movie}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
